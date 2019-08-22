@@ -1,6 +1,0 @@
-set(ezgripper_driver_SETUP_PY_VERSION "0.5.0")
-set(ezgripper_driver_SETUP_PY_SCRIPTS "")
-set(ezgripper_driver_SETUP_PY_PACKAGES "ezgripper_libs")
-set(ezgripper_driver_SETUP_PY_PACKAGE_DIRS "src/ezgripper_libs")
-set(ezgripper_driver_SETUP_PY_MODULES "")
-set(ezgripper_driver_SETUP_PY_MODULE_DIRS "")

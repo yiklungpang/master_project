@@ -1,8 +1,0 @@
-prefix=/home/yiklungpang/catkin_ws/install
-
-Name: affordance_experiment
-Description: Description of affordance_experiment
-Version: 0.0.0
-Cflags: -I/home/yiklungpang/catkin_ws/install/include
-Libs: -L/home/yiklungpang/catkin_ws/install/lib 
-Requires: 

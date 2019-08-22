@@ -1,8 +1,0 @@
-prefix=/home/yiklungpang/catkin_ws/devel
-
-Name: maria_moveit_config
-Description: Description of maria_moveit_config
-Version: 0.0.1
-Cflags: 
-Libs: -L/home/yiklungpang/catkin_ws/devel/lib 
-Requires: 
