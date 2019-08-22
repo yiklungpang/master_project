@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="affordance_experiment" type="data_collection.py" name="data_collection_process" output="screen"/>
+</launch>

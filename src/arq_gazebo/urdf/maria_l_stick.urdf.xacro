@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="maria_robot">
+
+    <xacro:include filename="$(find ur_description)/urdf/ur5.urdf.xacro"/>
+    <link name="world"/>
+
+    <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+    <xacro:arg name="initial_z" default="1.655"/>
+    <xacro:arg name="left_arm_initial_x" default="-0.147"/>
+    <xacro:arg name="right_arm_initial_x" default="0.147"/>
+
+    <joint name="world_to_left_arm_joint" type="fixed">
+        <parent link="world"/>
+        <child link="la_base_link"/>
+        <origin xyz="$(arg left_arm_initial_x) 0.0 $(arg initial_z)" rpy="1.5707963267948966 0.0 -1.5707963267948966"/>
+    </joint>
+
+    <xacro:ur5_robot prefix="la_" joint_limited="false"/>
+
+    <joint name="world_to_right_arm_joint" type="fixed">
+        <parent link="world"/>
+        <child link="ra_base_link"/>
+        <origin xyz="$(arg right_arm_initial_x) 0.0 $(arg initial_z)" rpy="1.5707963267948966 0.0 1.5707963267948966"/>
+    </joint>
+
+    <xacro:ur5_robot prefix="ra_" joint_limited="false"/>
+
+    <xacro:include filename="$(find affordance_experiment)/models/l_stick.urdf.xacro"/>
+    <!-- Add the tool -->
+    <joint name="arm_to_tool_joint" type="fixed">
+        <parent link="la_ee_link"/>
+        <child link="my_tool"/>
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    </joint>
+</robot>

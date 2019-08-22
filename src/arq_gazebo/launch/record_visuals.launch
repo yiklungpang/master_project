@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="limited" default="false"/>
+  <arg name="paused" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="debug" default="false" />
+  <arg name="sim" default="true" />
+
+  <arg name="tool_urdf" value="maria_stick.urdf.xacro" />
+
+  <arg name="home_angles" default="-J ra_shoulder_pan_joint -3.4476657256403098 -J ra_elbow_joint -0.9881967389643046 -J ra_wrist_1_joint 2.55796935290693 -J ra_wrist_2_joint -0.1556836479588126 -J ra_shoulder_lift_joint 4.045531692920143 -J ra_wrist_3_joint 2.3988125158401035 -J la_shoulder_pan_joint 3.55456578 -J la_shoulder_lift_joint -1.169371 -J la_elbow_joint 1.19911486 -J la_wrist_1_joint -0.8836602 -J la_wrist_2_joint 0.122173 -J la_wrist_3_joint 0."/>
+
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <env name="GAZEBO_MODEL_PATH" value="$(find arq_gazebo)/models/" />
+    <env name="GAZEBO_MODEL_DATABASE_URI" value="" />
+    <env name="MESH_WORKSPACE_PATH" value="$(find arq_gazebo)/models/" />
+    <arg name="world_name" default="$(find arq_gazebo)/worlds/qmul_world.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <!-- spwan ur5 -->
+  <!-- send robot urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find arq_gazebo)/urdf/$(arg tool_urdf)'" />
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <arg name="spawn_model_extra_args" value="-unpause $(arg home_angles)" />
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot $(arg spawn_model_extra_args)" respawn="false" output="screen" />
+
+  <!-- <include file="$(find ur_gazebo)/launch/controller_utils.launch"/> -->
+  <!-- Added joint_names.yaml loading-->
+  <rosparam command="load" file="$(find maria_moveit_config)/config/joint_names.yaml"/>
+  <!-- End of edit-->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" respawn="true" output="screen">
+    <param name="publish_frequency" type="double" value="50.0"/>
+    <param name="tf_prefix" type="string" value=""/>
+  </node>
+
+
+  <rosparam file="$(find arq_gazebo)/controller/left_arm_controller_maria.yaml" command="load"/>
+  <rosparam file="$(find arq_gazebo)/controller/right_arm_controller_maria.yaml" command="load"/>
+  <!-- Load joint state controller config -->
+  <rosparam file="$(find arq_gazebo)/controller/joint_state_controller.yaml" command="load"/>
+  <!--rosparam command="load" file="$(find ezgripper_driver)/config/ezgripper_state_controller.yaml"/-->
+
+
+  <node name="right_arm_trajectory_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="right_arm_controller"/>
+  <node name="left_arm_trajectory_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="left_arm_controller"/>
+
+  <!-- Spawn joint state controller -->
+  <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="joint_state_controller"/>
+  <!--node name="ezgripper_state_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="ezgripper_state_controller"/-->
+
+  <!-- Launch moveit -->
+  <include file="$(find maria_moveit_config)/launch/maria_move_group.launch">
+    <arg name="limited" default="$(arg limited)"/>
+    <arg name="tool_urdf" default="$(arg tool_urdf)"/>
+    <arg name="debug" default="$(arg debug)" />
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <include file="$(find maria_moveit_config)/launch/scene.launch"/>
+
+  <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
+  <node pkg="arq_gazebo" type="add_camera_frame.py" name="fixed_tf2_broadcaster" output="screen"/>
+  <node pkg="affordance_experiment" type="record_visuals.py" name="record_visuals" output="screen"/>
+  <!-- Loading a node to save point cloud as PCD file (cube) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cube_front" args="input:=/cube_front _prefix:=$(find affordance_experiment)/visuals/data/cube_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cube_left" args="input:=/cube_left _prefix:=$(find affordance_experiment)/visuals/data/cube_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cube_right" args="input:=/cube_right _prefix:=$(find affordance_experiment)/visuals/data/cube_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cube_back" args="input:=/cube_back _prefix:=$(find affordance_experiment)/visuals/data/cube_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (sphere) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_sphere_front" args="input:=/sphere_front _prefix:=$(find affordance_experiment)/visuals/data/sphere_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_sphere_left" args="input:=/sphere_left _prefix:=$(find affordance_experiment)/visuals/data/sphere_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_sphere_right" args="input:=/sphere_right _prefix:=$(find affordance_experiment)/visuals/data/sphere_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_sphere_back" args="input:=/sphere_back _prefix:=$(find affordance_experiment)/visuals/data/sphere_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (cylinder) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cylinder_front" args="input:=/cylinder_front _prefix:=$(find affordance_experiment)/visuals/data/cylinder_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cylinder_left" args="input:=/cylinder_left _prefix:=$(find affordance_experiment)/visuals/data/cylinder_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cylinder_right" args="input:=/cylinder_right _prefix:=$(find affordance_experiment)/visuals/data/cylinder_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_cylinder_back" args="input:=/cylinder_back _prefix:=$(find affordance_experiment)/visuals/data/cylinder_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (stick) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_stick_front" args="input:=/stick_front _prefix:=$(find affordance_experiment)/visuals/data/stick_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_stick_left" args="input:=/stick_left _prefix:=$(find affordance_experiment)/visuals/data/stick_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_stick_right" args="input:=/stick_right _prefix:=$(find affordance_experiment)/visuals/data/stick_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_stick_back" args="input:=/stick_back _prefix:=$(find affordance_experiment)/visuals/data/stick_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (l_stick) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_l_stick_front" args="input:=/l_stick_front _prefix:=$(find affordance_experiment)/visuals/data/l_stick_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_l_stick_left" args="input:=/l_stick_left _prefix:=$(find affordance_experiment)/visuals/data/l_stick_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_l_stick_right" args="input:=/l_stick_right _prefix:=$(find affordance_experiment)/visuals/data/l_stick_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_l_stick_back" args="input:=/l_stick_back _prefix:=$(find affordance_experiment)/visuals/data/l_stick_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (bone) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_bone_front" args="input:=/bone_front _prefix:=$(find affordance_experiment)/visuals/data/bone_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_bone_left" args="input:=/bone_left _prefix:=$(find affordance_experiment)/visuals/data/bone_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_bone_right" args="input:=/bone_right _prefix:=$(find affordance_experiment)/visuals/data/bone_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_bone_back" args="input:=/bone_back _prefix:=$(find affordance_experiment)/visuals/data/bone_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (umbrella) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_umbrella_front" args="input:=/umbrella_front _prefix:=$(find affordance_experiment)/visuals/data/umbrella_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_umbrella_left" args="input:=/umbrella_left _prefix:=$(find affordance_experiment)/visuals/data/umbrella_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_umbrella_right" args="input:=/umbrella_right _prefix:=$(find affordance_experiment)/visuals/data/umbrella_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_umbrella_back" args="input:=/umbrella_back _prefix:=$(find affordance_experiment)/visuals/data/umbrella_back_"/>
+  <!-- Loading a node to save point cloud as PCD file (fork) -->
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_fork_front" args="input:=/fork_front _prefix:=$(find affordance_experiment)/visuals/data/fork_front_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_fork_left" args="input:=/fork_left _prefix:=$(find affordance_experiment)/visuals/data/fork_left_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_fork_right" args="input:=/fork_right _prefix:=$(find affordance_experiment)/visuals/data/fork_right_"/>
+  <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator_fork_back" args="input:=/fork_back _prefix:=$(find affordance_experiment)/visuals/data/fork_back_"/>
+  <!-- Loading nodes to save RGB image -->
+  <node pkg="image_view" type="image_saver" name="rgb_saver_stick" args="image:=/stick_rgb _filename_format:=$(find affordance_experiment)/visuals/data/stick%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_l_stick" args="image:=/l_stick_rgb _filename_format:=$(find affordance_experiment)/visuals/data/l_stick%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_bone" args="image:=/bone_rgb _filename_format:=$(find affordance_experiment)/visuals/data/bone%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_umbrella" args="image:=/umbrella_rgb _filename_format:=$(find affordance_experiment)/visuals/data/umbrella%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_fork" args="image:=/fork_rgb _filename_format:=$(find affordance_experiment)/visuals/data/fork%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_cube" args="image:=/cube_rgb _filename_format:=$(find affordance_experiment)/visuals/data/cube%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_sphere" args="image:=/sphere_rgb _filename_format:=$(find affordance_experiment)/visuals/data/sphere%04d.%s"/>
+  <node pkg="image_view" type="image_saver" name="rgb_saver_cylinder" args="image:=/cylinder_rgb _filename_format:=$(find affordance_experiment)/visuals/data/cylinder%04d.%s"/>
+</launch>

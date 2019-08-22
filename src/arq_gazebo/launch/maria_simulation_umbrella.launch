@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="limited" default="false"/>
+  <arg name="paused" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="debug" default="false" />
+  <arg name="sim" default="true" />
+
+  <arg name="tool_urdf" value="maria_umbrella.urdf.xacro" />
+
+  <arg name="home_angles" default="-J ra_shoulder_pan_joint -3.4476657256403098 -J ra_elbow_joint -0.9881967389643046 -J ra_wrist_1_joint 2.55796935290693 -J ra_wrist_2_joint -0.1556836479588126 -J ra_shoulder_lift_joint 4.045531692920143 -J ra_wrist_3_joint 2.3988125158401035 -J la_shoulder_pan_joint 3.55456578 -J la_shoulder_lift_joint -1.169371 -J la_elbow_joint 1.19911486 -J la_wrist_1_joint -0.8836602 -J la_wrist_2_joint 0.122173 -J la_wrist_3_joint 0."/>
+
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <env name="GAZEBO_MODEL_PATH" value="$(find arq_gazebo)/models/" />
+    <env name="GAZEBO_MODEL_DATABASE_URI" value="" />
+    <env name="MESH_WORKSPACE_PATH" value="$(find arq_gazebo)/models/" />
+    <arg name="world_name" default="$(find arq_gazebo)/worlds/qmul_world.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <!-- spwan ur5 -->
+  <!-- send robot urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find arq_gazebo)/urdf/$(arg tool_urdf)'" />
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <arg name="spawn_model_extra_args" value="-unpause $(arg home_angles)" />
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot $(arg spawn_model_extra_args)" respawn="false" output="screen" />
+
+  <!-- <include file="$(find ur_gazebo)/launch/controller_utils.launch"/> -->
+  <!-- Added joint_names.yaml loading-->
+  <rosparam command="load" file="$(find maria_moveit_config)/config/joint_names.yaml"/>
+  <!-- End of edit-->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" respawn="true" output="screen">
+    <param name="publish_frequency" type="double" value="50.0"/>
+    <param name="tf_prefix" type="string" value=""/>
+  </node>
+
+
+  <rosparam file="$(find arq_gazebo)/controller/left_arm_controller_maria.yaml" command="load"/>
+  <rosparam file="$(find arq_gazebo)/controller/right_arm_controller_maria.yaml" command="load"/>
+  <!-- Load joint state controller config -->
+  <rosparam file="$(find arq_gazebo)/controller/joint_state_controller.yaml" command="load"/>
+  <!--rosparam command="load" file="$(find ezgripper_driver)/config/ezgripper_state_controller.yaml"/-->
+
+
+  <node name="right_arm_trajectory_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="right_arm_controller"/>
+  <node name="left_arm_trajectory_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="left_arm_controller"/>
+
+  <!-- Spawn joint state controller -->
+  <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="joint_state_controller"/>
+  <!--node name="ezgripper_state_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="ezgripper_state_controller"/-->
+
+  <!-- Launch moveit -->
+  <include file="$(find maria_moveit_config)/launch/maria_move_group.launch">
+    <arg name="limited" default="$(arg limited)"/>
+    <arg name="tool_urdf" default="$(arg tool_urdf)"/>
+    <arg name="debug" default="$(arg debug)" />
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <include file="$(find maria_moveit_config)/launch/scene.launch"/>
+
+  <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
+  <node pkg="arq_gazebo" type="add_camera_frame.py" name="fixed_tf2_broadcaster" output="screen"/>
+  <node pkg="affordance_experiment" type="perform_experiment.py" name="perform_experiment" output="screen"/>
+  <!-- Loading a node to save point cloud as PCD file -->
+  <!-- <node pkg="pcl_ros" type="pointcloud_to_pcd" name="pcd_generator" args="input:=/camera/depth/points _prefix:=/home/yiklungpang/catkin_ws/src/affordance_experiment/vel_"/> -->
+
+</launch>

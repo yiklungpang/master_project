@@ -1,0 +1,8 @@
+prefix=/home/yiklungpang/catkin_ws/devel
+
+Name: arq_gazebo
+Description: Description of arq_gazebo
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/yiklungpang/catkin_ws/devel/lib 
+Requires: 

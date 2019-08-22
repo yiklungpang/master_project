@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+  <model name="qmul_metallic_frame">
+  <static>true</static>
+    <link name="link">
+      <inertial>
+        <mass>20</mass>
+      </inertial>
+      <collision name="collision">
+        <pose>0.0 0.0 0.0 0 0.0 0.0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://qmul_metallic_frame/meshes/qmul_metallic_frame.stl</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.8</mu>
+              <mu2>0.8</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <max_vel>0.0000</max_vel>
+              <min_depth>0.0000</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <pose>0.0 0.0 0.0 0 0.0 0.0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://qmul_metallic_frame/meshes/qmul_metallic_frame.stl</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
