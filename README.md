@@ -1,4 +1,4 @@
-# Detection of Object and Tool Affordances through RGB-D
+# Detection of Object and Tool Affordances through RGB-D Sensing and Robot Exploration
 This is a catkin workspace containing the simulation environment and Bayesian network models for affordance learning.
 
 ## Prerequisites
@@ -8,7 +8,7 @@ You will need the following software installed on your machine:
 - RViz
 - MoveIt!
 - RStudio
-- Python packages: numpy, matplotlib, sklearn, pandas
+- Python packages: numpy, matplotlib, sklearn, pandas, OpenCV
 - R packages: bnlearn, Rgraphviz, gRain
 
 ## Getting Started
