@@ -4,7 +4,7 @@ This is a catkin workspace containing the simulation environment and Bayesian ne
 ## Prerequisites
 You will need the following software installed on your machine:
 - ROS Kinetic
-- Gazebo 7
+- Gazebo 8
 - RViz
 - MoveIt!
 - RStudio
